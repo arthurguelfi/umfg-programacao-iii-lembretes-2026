@@ -1,12 +1,5 @@
-// ========================================
-// CONFIGURAÇÃO
-// ========================================
-
-// URL da Minimal API (perfil "http" do launchSettings.json).
-// Para usar HTTPS, troque para "https://localhost:7063" (requer certificado de desenvolvimento confiável).
 const API_URL = "http://localhost:5207";
 
-// Estado da tela (filtros, paginação e ordenação)
 const estado = {
     paginaAtual: 1,
     totalPaginas: 1,
@@ -14,11 +7,6 @@ const estado = {
     direcao: "DESC",
     carregando: false
 };
-
-
-// ========================================
-// ELEMENTOS DA PÁGINA
-// ========================================
 
 const $ = id => document.getElementById(id);
 
@@ -60,26 +48,12 @@ const statusApiTexto = $("statusApiTexto");
 const modalConfirmar = $("modalConfirmar");
 const textoConfirmar = $("textoConfirmar");
 
-
-// ========================================
-// INICIALIZAÇÃO
-// ========================================
-
 document.addEventListener("DOMContentLoaded", () => {
     $("apiUrlTexto").textContent = API_URL;
     atualizarIndicadoresOrdenacao();
     filtrarLembretes();
 });
 
-
-// ========================================
-// COMUNICAÇÃO COM A API
-// ========================================
-
-/**
- * Wrapper do fetch: trata falha de rede (API fora do ar / CORS)
- * e respostas HTTP de erro, devolvendo mensagens amigáveis.
- */
 async function requisicao(caminho, opcoes = {}) {
     let response;
 
@@ -98,7 +72,7 @@ async function requisicao(caminho, opcoes = {}) {
         let detalhe = "";
         try {
             detalhe = (await response.text()).replace(/^"|"$/g, "");
-        } catch { /* sem corpo */ }
+        } catch {}
 
         const mensagens = {
             400: detalhe || "Requisição inválida.",
@@ -121,10 +95,6 @@ function definirStatusApi(online) {
     alertaApi.classList.toggle("hidden", online);
 }
 
-/**
- * Monta a query string com TODOS os parâmetros suportados por /lembretes/filtro.
- * Campos vazios não são enviados (a API trata como "sem filtro").
- */
 function montarParametros() {
     const params = new URLSearchParams();
 
@@ -153,10 +123,6 @@ function filtrosAtivos() {
         .some(campo => campo.value.trim() !== "");
 }
 
-
-// ========================================
-// GET /lembretes/filtro
-// ========================================
 async function filtrarLembretes() {
     if (!validarFiltros()) return;
 
@@ -175,7 +141,6 @@ async function filtrarLembretes() {
         const tamanho = resultado.tamanhoPagina;
         estado.totalPaginas = Math.max(1, Math.ceil(total / tamanho));
 
-        // se a página atual ficou vazia (ex.: após excluir o último item), volta uma página
         if (resultado.lembretes.length === 0 && total > 0 && estado.paginaAtual > estado.totalPaginas) {
             estado.paginaAtual = estado.totalPaginas;
             return filtrarLembretes();
@@ -222,10 +187,6 @@ function validarFiltros() {
     return true;
 }
 
-
-// ========================================
-// GET /lembretes/imprimir
-// ========================================
 async function imprimirLembretes() {
     if (!validarFiltros()) return;
 
@@ -254,10 +215,6 @@ async function imprimirLembretes() {
     }
 }
 
-
-// ========================================
-// POST /lembretes
-// ========================================
 async function criarLembrete() {
     try {
         await requisicao("/lembretes", {
@@ -269,7 +226,6 @@ async function criarLembrete() {
         mostrarToast("Lembrete criado com sucesso!", "sucesso");
         fecharFormulario();
 
-        // mostra o novo registro: volta para a 1ª página
         estado.paginaAtual = 1;
         await filtrarLembretes();
     } catch (error) {
@@ -278,10 +234,6 @@ async function criarLembrete() {
     }
 }
 
-
-// ========================================
-// GET /lembretes/{id}
-// ========================================
 async function buscarLembrete(id) {
     try {
         const response = await requisicao(`/lembretes/${encodeURIComponent(id)}`);
@@ -294,10 +246,6 @@ async function buscarLembrete(id) {
     }
 }
 
-
-// ========================================
-// PUT /lembretes/{id}
-// ========================================
 async function atualizarLembrete() {
     try {
         await requisicao(`/lembretes/${encodeURIComponent(lembreteId.value)}`, {
@@ -315,10 +263,6 @@ async function atualizarLembrete() {
     }
 }
 
-
-// ========================================
-// DELETE /lembretes/{id}
-// ========================================
 async function excluirLembrete(id, texto) {
     const confirmou = await confirmar(texto);
     if (!confirmou) return;
@@ -334,10 +278,6 @@ async function excluirLembrete(id, texto) {
     }
 }
 
-
-// ========================================
-// RENDERIZAÇÃO
-// ========================================
 function renderizarLembretes(lembretes) {
     listaLembretes.innerHTML = "";
 
@@ -392,7 +332,6 @@ function renderizarPaginacao(total, pagina, tamanho, quantidadeNaPagina) {
     btnPrimeira.disabled = btnAnterior.disabled = pagina <= 1;
     btnProximo.disabled = btnUltima.disabled = pagina >= estado.totalPaginas;
 
-    // números de página com reticências: 1 … 4 5 [6] 7 8 … 20
     numerosPagina.innerHTML = "";
     const paginas = calcularPaginasVisiveis(pagina, estado.totalPaginas);
 
@@ -431,10 +370,6 @@ function calcularPaginasVisiveis(atual, total) {
     return paginas;
 }
 
-
-// ========================================
-// FORMULÁRIO (modal)
-// ========================================
 $("btnImprimir").addEventListener("click", imprimirLembretes);
 $("btnNovo").addEventListener("click", () => abrirFormulario("Novo lembrete", "", ""));
 $("btnCancelar").addEventListener("click", fecharFormulario);
@@ -520,10 +455,6 @@ document.addEventListener("keydown", e => {
     else if (!formulario.classList.contains("hidden")) fecharFormulario();
 });
 
-
-// ========================================
-// FILTROS
-// ========================================
 formFiltro.addEventListener("submit", event => {
     event.preventDefault();
     estado.paginaAtual = 1;
@@ -543,10 +474,6 @@ tamanhoPagina.addEventListener("change", () => {
     filtrarLembretes();
 });
 
-
-// ========================================
-// ORDENAÇÃO (clique no cabeçalho da coluna)
-// ========================================
 document.querySelectorAll(".ordenar").forEach(botao => {
     botao.addEventListener("click", () => {
         const campo = botao.dataset.campo;
@@ -574,10 +501,6 @@ function atualizarIndicadoresOrdenacao() {
     });
 }
 
-
-// ========================================
-// PAGINAÇÃO
-// ========================================
 function irParaPagina(pagina) {
     if (estado.carregando) return;
     pagina = Math.min(Math.max(1, pagina), estado.totalPaginas);
@@ -592,10 +515,6 @@ btnAnterior.addEventListener("click", () => irParaPagina(estado.paginaAtual - 1)
 btnProximo.addEventListener("click", () => irParaPagina(estado.paginaAtual + 1));
 btnUltima.addEventListener("click", () => irParaPagina(estado.totalPaginas));
 
-
-// ========================================
-// UTILITÁRIOS
-// ========================================
 function formatarData(data) {
     if (!data) return "-";
 

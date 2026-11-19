@@ -1,4 +1,3 @@
-# Sobe o MySQL usado pela API (connection string de Development: localhost:3306, root/root)
 services:
   mysql:
     image: mysql:8.0

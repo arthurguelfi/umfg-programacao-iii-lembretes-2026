@@ -227,7 +227,7 @@ public class Program
         }
 
         // Filtros opcionais
-        // Filtros opcionais (datas informadas como yyyy-MM-dd)
+        // Filtros opcionais
         if (dto.DataCadastroInicial.HasValue)
         {
             var ini = dto.DataCadastroInicial.Value.Date;
@@ -252,13 +252,11 @@ public class Program
             query = query.Where(x => x.DataAtualizacao < fim);
         }
 
-        //direção padrão: do mais recente para o mais antigo
         var direcao = (dto.Direcao ?? "DESC").ToUpper();
         if (direcao != "ASC" && direcao != "DESC")
             direcao = "DESC";
         dto.Direcao = direcao;
 
-        //ordenação pelo campo informado (antes ordenava por uma constante e não tinha efeito)
         var desc = direcao == "DESC";
         query = (dto.Ordem ?? string.Empty).ToLower() switch
         {
