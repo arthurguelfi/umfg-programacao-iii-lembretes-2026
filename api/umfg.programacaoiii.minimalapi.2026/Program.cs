@@ -11,21 +11,14 @@ namespace umfg.programacaoiii.minimalapi._2026;
 
 public class Program
 {    
-    //método de startup do projeto
     public static void Main(string[] args)
     {
-        //variavel padrão do .net permite definir as caracteristicas que a api irá ter
-        //ex: autenticação e autorização via JWT / qual banco de dados
         var builder = WebApplication.CreateBuilder(args);
         var connectionString = builder.Configuration["ConnectionString"] ?? string.Empty;
 
-        //aqui configuramos a conexão da API com o banco de dados
         builder.Services
             .AddDbContext<MySqlContexto>(options => options.UseMySQL(connectionString));
-            //.AddDbContext<MySqlContexto>(options => options.UseMySQL("Server=localhost;Port=3308;Database=umfg_lembrete_develop;Uid=root;Pwd=root;"));
 
-        //implementacao do CORS para permitir que a aplicação frontend acesse a API (localhost)
-        //no mundo real, restrinja o acesso apenas para o dominio do frontend conhecido. Ex.: .WithOrigins("https://app.empresa.com.br")
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("Frontend", policy =>
@@ -37,7 +30,6 @@ public class Program
             });
         });
 
-        //aqui a aplicação é construída
         var app = builder.Build();
 
         app.MapPost("/lembretes", async (LembreteDTO dto, MySqlContexto contexto) =>
@@ -85,7 +77,6 @@ public class Program
             return Results.Ok(resultado);
         });
 
-        //Biblioteca -> QuestPDF
         Settings.License = LicenseType.Community;
 
         app.MapGet("/lembretes/imprimir", async ([AsParameters] LembreteQueryDTO.LembreteQueryRequestDTO dto, MySqlContexto contexto) =>
@@ -158,7 +149,6 @@ public class Program
             return Results.File(documento.GeneratePdf(), "application/pdf", "relatorio-lembretes.pdf");
         });
 
-
         app.MapDelete("/lembretes/{id}", async (string id, MySqlContexto contexto) =>
         {
             if (!Guid.TryParse(id, out var guid))
@@ -166,7 +156,6 @@ public class Program
 
             var lembrete = await contexto.Lembrete.FindAsync(guid);
 
-            //conceito de fail first
             if (lembrete is null)
                 return Results.NotFound();
 
@@ -201,15 +190,11 @@ public class Program
             return Results.Ok(lembreteExistente);
         });
 
-        //aqui habilitamos as funcionalidades da api
         app.UseHttpsRedirection();
 
-        //habilitar o uso da regra de CORS
         app.UseCors("Frontend");
 
-        //a api é iniciada de fato
         app.Run();
-        //tudo que for colocado após o run será executado somente quando a api for parada
     }
 
     private static async Task<(List<Lembrete>, long)>FiltrarLembretes(
@@ -219,15 +204,12 @@ public class Program
                 .AsNoTracking()
                 .Where(x => x.IsAtivo);
 
-        //busca por descrição com tratamento de caracteres especiais para LIKE
         if (!string.IsNullOrWhiteSpace(dto.Descricao))
         {
             var termo = dto.Descricao.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
             query = query.Where(x => EF.Functions.Like(x.Descricao, $"%{termo}%"));
         }
 
-        // Filtros opcionais
-        // Filtros opcionais
         if (dto.DataCadastroInicial.HasValue)
         {
             var ini = dto.DataCadastroInicial.Value.Date;
@@ -236,7 +218,7 @@ public class Program
 
         if (dto.DataCadastroFinal.HasValue)
         {
-            var fim = dto.DataCadastroFinal.Value.Date.AddDays(1); // inclui o dia inteiro
+            var fim = dto.DataCadastroFinal.Value.Date.AddDays(1);
             query = query.Where(x => x.DataCadastro < fim);
         }
 
@@ -248,7 +230,7 @@ public class Program
 
         if (dto.DataAtualizacaoFinal.HasValue)
         {
-            var fim = dto.DataAtualizacaoFinal.Value.Date.AddDays(1); // inclui o dia inteiro
+            var fim = dto.DataAtualizacaoFinal.Value.Date.AddDays(1);
             query = query.Where(x => x.DataAtualizacao < fim);
         }
 
@@ -266,7 +248,6 @@ public class Program
             _ => desc ? query.OrderByDescending(x => x.DataCadastro) : query.OrderBy(x => x.DataCadastro),
         };
 
-        // paginação
         var numeroPagina = dto.NumeroPagina ?? 1;
         var tamanhoPagina = dto.TamanhoPagina ?? 10;
         var pular = (numeroPagina - 1) * tamanhoPagina;
