@@ -1,0 +1,14 @@
+# Sobe o MySQL usado pela API (connection string de Development: localhost:3306, root/root)
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-lembretes
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-dados:/var/lib/mysql
+
+volumes:
+  mysql-dados:

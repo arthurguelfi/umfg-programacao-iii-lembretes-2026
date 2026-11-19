@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloco de Notas · Lembretes</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div class="faixa" aria-hidden="true"></div>
+
+    <main class="container">
+
+        <!-- CABEÇALHO -->
+        <header class="header">
+            <div class="marca">
+                <span class="marca-icone" aria-hidden="true">✎</span>
+                <div>
+                    <h1>Bloco de Notas</h1>
+                    <p>Seus lembretes, organizados e sempre à mão.</p>
+                </div>
+            </div>
+
+            <div class="header-acoes">
+                <span id="statusApi" class="status-api" title="Situação da conexão com a API">
+                    <span class="ponto"></span> <span id="statusApiTexto">verificando…</span>
+                </span>
+                <button id="btnImprimir" class="btn btn-ghost" type="button">⎙ Exportar PDF</button>
+                <button id="btnNovo" class="btn btn-primary" type="button">+ Novo lembrete</button>
+            </div>
+        </header>
+
+        <!-- ALERTA DE ERRO DE COMUNICAÇÃO -->
+        <div id="alertaApi" class="alerta hidden" role="alert">
+            <strong>Não foi possível comunicar com a API.</strong>
+            <span id="alertaApiTexto">Verifique se ela está em execução em <code id="apiUrlTexto"></code>.</span>
+            <button id="btnTentarNovamente" class="btn btn-small" type="button">Tentar novamente</button>
+        </div>
+
+        <!-- FILTROS -->
+        <section class="card card-filtro" aria-labelledby="tituloFiltro">
+            <div class="card-titulo">
+                <h2 id="tituloFiltro">Filtros</h2>
+                <button id="btnLimpar" class="link" type="button">Limpar filtros</button>
+            </div>
+
+            <form id="formFiltro" class="filtro" novalidate>
+                <div class="form-group campo-descricao">
+                    <label for="filtroDescricao">Descrição contém</label>
+                    <input type="search" id="filtroDescricao" placeholder="Ex.: reunião, prova…" autocomplete="off">
+                </div>
+
+                <fieldset class="intervalo">
+                    <legend>Data de cadastro</legend>
+                    <div class="form-group">
+                        <label for="filtroCadastroInicial">De</label>
+                        <input type="date" id="filtroCadastroInicial">
+                    </div>
+                    <div class="form-group">
+                        <label for="filtroCadastroFinal">Até</label>
+                        <input type="date" id="filtroCadastroFinal">
+                    </div>
+                </fieldset>
+
+                <fieldset class="intervalo">
+                    <legend>Data de atualização</legend>
+                    <div class="form-group">
+                        <label for="filtroAtualizacaoInicial">De</label>
+                        <input type="date" id="filtroAtualizacaoInicial">
+                    </div>
+                    <div class="form-group">
+                        <label for="filtroAtualizacaoFinal">Até</label>
+                        <input type="date" id="filtroAtualizacaoFinal">
+                    </div>
+                </fieldset>
+
+                <div class="filtro-acoes">
+                    <span id="erroFiltro" class="erro-campo" aria-live="polite"></span>
+                    <button id="btnFiltrar" class="btn btn-primary" type="submit">Aplicar filtros</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- LISTAGEM -->
+        <section class="card card-lista" aria-labelledby="tituloLista">
+            <div class="card-titulo">
+                <h2 id="tituloLista">Lembretes</h2>
+                <div class="lista-info">
+                    <span id="totalRegistros" class="pill">0 registros</span>
+                    <label class="tamanho">
+                        Exibir
+                        <select id="tamanhoPagina">
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                        </select>
+                        por página
+                    </label>
+                </div>
+            </div>
+
+            <div class="table-container" id="tabelaContainer">
+                <table>
+                    <thead>
+                        <tr>
+                            <th><button type="button" class="ordenar" data-campo="Descricao">Descrição <span class="seta"></span></button></th>
+                            <th><button type="button" class="ordenar" data-campo="DataCadastro">Cadastro <span class="seta"></span></button></th>
+                            <th><button type="button" class="ordenar" data-campo="DataAtualizacao">Atualização <span class="seta"></span></button></th>
+                            <th><button type="button" class="ordenar" data-campo="IsAtivo">Status <span class="seta"></span></button></th>
+                            <th class="col-acoes">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaLembretes"></tbody>
+                </table>
+
+                <div id="carregando" class="carregando hidden">
+                    <span class="spinner" aria-hidden="true"></span> Carregando lembretes…
+                </div>
+
+                <div id="mensagemVazia" class="empty hidden">
+                    <span class="empty-icone" aria-hidden="true">🗒️</span>
+                    <strong>Nenhum lembrete encontrado.</strong>
+                    <span id="mensagemVaziaDetalhe">Ajuste os filtros ou cadastre um novo lembrete.</span>
+                </div>
+            </div>
+
+            <!-- PAGINAÇÃO -->
+            <nav class="pagination" aria-label="Paginação">
+                <span id="intervaloRegistros" class="intervalo-registros">—</span>
+                <div class="paginas">
+                    <button id="btnPrimeira" class="btn-pag" type="button" title="Primeira página">«</button>
+                    <button id="btnAnterior" class="btn-pag" type="button" title="Página anterior">‹</button>
+                    <div id="numerosPagina" class="numeros"></div>
+                    <button id="btnProximo" class="btn-pag" type="button" title="Próxima página">›</button>
+                    <button id="btnUltima" class="btn-pag" type="button" title="Última página">»</button>
+                </div>
+            </nav>
+        </section>
+
+        <footer class="rodape">
+            Programação III · UMFG 2026 — front-end consumindo a Minimal API de lembretes
+        </footer>
+    </main>
+
+    <!-- MODAL FORMULÁRIO -->
+    <div id="formulario" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="tituloFormulario">
+        <div class="modal-caixa">
+            <h2 id="tituloFormulario">Novo lembrete</h2>
+
+            <form id="formLembrete" novalidate>
+                <input type="hidden" id="lembreteId">
+
+                <div class="form-group">
+                    <label for="descricao">Descrição <span class="obrigatorio">*</span></label>
+                    <textarea id="descricao" rows="4" placeholder="O que você precisa lembrar?" maxlength="500"></textarea>
+                    <div class="campo-rodape">
+                        <span id="erroDescricao" class="erro-campo" aria-live="polite"></span>
+                        <span id="contador" class="contador">0/500</span>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" id="btnCancelar" class="btn btn-ghost">Cancelar</button>
+                    <button type="submit" id="btnSalvar" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL CONFIRMAÇÃO -->
+    <div id="modalConfirmar" class="modal hidden" role="alertdialog" aria-modal="true" aria-labelledby="tituloConfirmar">
+        <div class="modal-caixa modal-pequeno">
+            <h2 id="tituloConfirmar">Excluir lembrete?</h2>
+            <p id="textoConfirmar" class="texto-confirmar"></p>
+            <div class="form-actions">
+                <button type="button" id="btnConfirmarNao" class="btn btn-ghost">Cancelar</button>
+                <button type="button" id="btnConfirmarSim" class="btn btn-danger">Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOASTS -->
+    <div id="toasts" class="toasts" aria-live="polite"></div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
